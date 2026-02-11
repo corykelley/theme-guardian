@@ -48,7 +48,7 @@ Nested loops and expensive operations inside loops are the most common cause of 
 | Loop exists          | +1    | Adds iteration overhead per request |
 | Nested loop          | +3    | O(n*m) iterations compound fast |
 | Filter inside loop   | +2    | Each filter runs per iteration |
-| `all_products` usage | +5    | Loads entire product catalog into memory |
+| `all_products` usage | +5    | Deprecated global — bypasses collection caching with uncached per-handle lookups |
 
 Severity: 0-2 LOW, 3-5 MEDIUM, 6+ HIGH.
 
@@ -56,7 +56,7 @@ Severity: 0-2 LOW, 3-5 MEDIUM, 6+ HIGH.
 
 - **Nested loops:** Flatten into a single loop where possible, or limit the inner collection with `limit:`.
 - **Filters inside loops:** Move filter chains to `{% assign %}` tags *before* the loop so they compute once instead of per iteration.
-- **`all_products`:** Replace with a specific collection handle or use predictive search. `all_products` forces Shopify to load every product on every request regardless of how many you display.
+- **`all_products`:** Replace with a specific collection handle or use predictive search. `all_products` is deprecated — it bypasses collection-based caching, each access is an uncached lookup, and it's capped at 20 handles per page.
 
 ### Snippet Dependencies
 
@@ -137,7 +137,16 @@ Precedence: built-in defaults < config file < CLI flags.
     "low": 2
   },
   "issues": {
-    "loops": [],
+    "loops": [
+      {
+        "file": "sections/product-accordions.liquid",
+        "depth": 3,
+        "score": 6,
+        "severity": "HIGH",
+        "message": "Nested loop detected with filter usage",
+        "hint": "Flatten the nested loop and move filters to assign tags above the loop"
+      }
+    ],
     "snippets": [],
     "sections": [],
     "duplicates": []

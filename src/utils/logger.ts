@@ -73,7 +73,7 @@ function severityHeader(severity: Severity, count: number): void {
 
 export function loopHint(issue: LoopIssue): string {
   if (issue.message.includes('all_products')) {
-    return 'Replace all_products with a specific collection — it loads every product into memory';
+    return 'Replace all_products with a specific collection — it bypasses caching with uncached per-handle lookups';
   }
   if (issue.depth >= 2 && issue.message.includes('filter')) {
     return 'Flatten the nested loop and move filters to assign tags above the loop';

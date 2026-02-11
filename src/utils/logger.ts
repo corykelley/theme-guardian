@@ -71,7 +71,7 @@ function severityHeader(severity: Severity, count: number): void {
 
 // ── Remediation hints ───────────────────────────────────────────────
 
-function loopHint(issue: LoopIssue): string {
+export function loopHint(issue: LoopIssue): string {
   if (issue.message.includes('all_products')) {
     return 'Replace all_products with a specific collection — it loads every product into memory';
   }
@@ -87,7 +87,7 @@ function loopHint(issue: LoopIssue): string {
   return 'Consider limiting the collection size or paginating';
 }
 
-function sectionHint(issue: SectionIssue): string {
+export function sectionHint(issue: SectionIssue): string {
   const bigLines = issue.lines > 600;
   const bigBlocks = issue.blocks > 20;
   if (bigLines && bigBlocks) {
@@ -108,7 +108,7 @@ function sectionHint(issue: SectionIssue): string {
   return 'Schema is growing — consider grouping related block types';
 }
 
-function snippetHint(issue: SnippetGraphIssue): string {
+export function snippetHint(issue: SnippetGraphIssue): string {
   if (issue.type === 'CIRCULAR') {
     return 'Break the cycle — one snippet should own the shared markup';
   }

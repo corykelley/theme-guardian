@@ -4,7 +4,7 @@ import { scanThemeFiles } from '../core/fileScanner.js';
 import { buildSnippetGraph } from '../core/graphBuilder.js';
 import { buildReport, shouldFail } from '../core/scoring.js';
 import { resolveConfig } from '../utils/config.js';
-import { printReport } from '../utils/logger.js';
+import { printReport, loopHint, snippetHint, sectionHint } from '../utils/logger.js';
 import { analyzeLoops } from '../analyzers/loopAnalyzer.js';
 import { analyzeSnippets } from '../analyzers/snippetAnalyzer.js';
 import { analyzeSections } from '../analyzers/sectionAnalyzer.js';
@@ -79,7 +79,16 @@ export function createProgram(): Command {
 
       // Output
       if (opts.json) {
-        process.stdout.write(JSON.stringify(report, null, 2) + '\n');
+        const jsonReport = {
+          ...report,
+          issues: {
+            loops: report.issues.loops.map((i) => ({ ...i, hint: loopHint(i) })),
+            snippets: report.issues.snippets.map((i) => ({ ...i, hint: snippetHint(i) })),
+            sections: report.issues.sections.map((i) => ({ ...i, hint: sectionHint(i) })),
+            duplicates: report.issues.duplicates.map((i) => ({ ...i, hint: 'Consolidate into a single snippet' })),
+          },
+        };
+        process.stdout.write(JSON.stringify(jsonReport, null, 2) + '\n');
       } else {
         printReport(report);
       }

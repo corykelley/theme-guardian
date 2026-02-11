@@ -1,0 +1,13 @@
+<div class="product-grid">
+  {% for collection in collections %}
+    <div class="collection">
+      <h2>{{ collection.title | upcase }}</h2>
+      {% for product in collection.products %}
+        <div class="product">
+          <h3>{{ product.title | truncate: 50 }}</h3>
+          <p>{{ product.price | money }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>

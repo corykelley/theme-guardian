@@ -1,0 +1,8 @@
+<div class="all-products">
+  {% for product in all_products %}
+    <div class="product-card">
+      <h3>{{ product.title | upcase }}</h3>
+      <p>{{ product.price | money }}</p>
+    </div>
+  {% endfor %}
+</div>

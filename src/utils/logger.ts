@@ -293,9 +293,19 @@ function printHeader(report: ThemeGuardianReport): void {
   if (meta.templates > 0) parts.push(plural(meta.templates, 'template'));
 
   nl();
-  console.log(`${P}${chalk.bold('theme-guardian')} ${chalk.dim('v0.1.0')}`);
+  const s = chalk.cyan;
+  const f = chalk.dim;
+  console.log(`${P}       ${s('▄██████████████▄')}`);
+  console.log(`${P}      ${s('██')}${f('░░░░░░░░░░░░░░')}${s('██')}`);
+  console.log(`${P}      ${s('██')}${f('░░░░░░░░░░░░░░')}${s('██')}`);
+  console.log(`${P}       ${s('██')}${f('░░░░░░░░░░░░')}${s('██')}`);
+  console.log(`${P}        ${s('▀██')}${f('░░░░░░░░')}${s('██▀')}`);
+  console.log(`${P}          ${s('▀██')}${f('░░░░')}${s('██▀')}`);
+  console.log(`${P}            ${s('▀████▀')}`);
+  nl();
+  console.log(`${P}${chalk.bold('theme-guardian')} ${f('v0.1.0')}`);
   if (parts.length > 0) {
-    console.log(`${P}${chalk.dim(parts.join(' · ') + ' scanned')}`);
+    console.log(`${P}${f(parts.join(' · ') + ' scanned')}`);
   }
 }
 

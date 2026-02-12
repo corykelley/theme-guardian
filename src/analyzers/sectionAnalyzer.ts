@@ -17,9 +17,7 @@ export function analyzeSections(
   for (const section of sections) {
     const { lines } = section;
 
-    // Count occurrences of "type": in the content (JSON schema blocks)
-    const typeMatches = section.content.match(/"type"\s*:/g);
-    const blocks = typeMatches ? typeMatches.length : 0;
+    const blocks = countSchemaBlocks(section.content);
 
     let lineSeverity: Severity | null = null;
     let blockSeverity: Severity | null = null;
@@ -50,7 +48,7 @@ export function analyzeSections(
       messageParts.push(`Section has ${lines} lines (threshold: ${lines > 600 ? 600 : options.maxSectionLines})`);
     }
     if (blockSeverity) {
-      messageParts.push(`Section has ${blocks} blocks (threshold: ${blocks > 20 ? 20 : options.maxSectionBlocks})`);
+      messageParts.push(`Section has ${blocks} ${blocks === 1 ? 'block' : 'blocks'} (threshold: ${blocks > 20 ? 20 : options.maxSectionBlocks})`);
     }
 
     issues.push({
@@ -63,6 +61,24 @@ export function analyzeSections(
   }
 
   return issues;
+}
+
+/**
+ * Extract the {% schema %}…{% endschema %} JSON and count
+ * top-level block type definitions in the "blocks" array.
+ */
+function countSchemaBlocks(content: string): number {
+  const schemaMatch = content.match(
+    /\{%-?\s*schema\s*-?%\}([\s\S]*?)\{%-?\s*endschema\s*-?%\}/,
+  );
+  if (!schemaMatch) return 0;
+
+  try {
+    const schema = JSON.parse(schemaMatch[1]);
+    return Array.isArray(schema.blocks) ? schema.blocks.length : 0;
+  } catch {
+    return 0;
+  }
 }
 
 function highestSeverity(a: Severity | null, b: Severity | null): Severity | null {

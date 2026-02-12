@@ -71,18 +71,26 @@ function severityHeader(severity: Severity, count: number): void {
 
 // ── Remediation hints ───────────────────────────────────────────────
 
+function lineRef(nums: number[]): string {
+  if (nums.length === 0) return '';
+  if (nums.length === 1) return ` at line ${nums[0]}`;
+  return ` at lines ${nums.join(', ')}`;
+}
+
 export function loopHint(issue: LoopIssue): string {
-  if (issue.message.includes('all_products')) {
-    return 'Replace all_products with a specific collection — it bypasses caching with uncached per-handle lookups';
+  const { lineDetails } = issue;
+
+  if (lineDetails.allProducts.length > 0) {
+    return `Replace all_products${lineRef(lineDetails.allProducts)} with a specific collection — bypasses caching`;
   }
-  if (issue.depth >= 2 && issue.message.includes('filter')) {
-    return 'Flatten the nested loop and move filters to assign tags above the loop';
+  if (issue.depth >= 2 && lineDetails.hoistableFilters.length > 0) {
+    return `Nested loop${lineRef(lineDetails.nestedLoops)} — move static filters${lineRef(lineDetails.hoistableFilters)} to assign tags above the loop`;
   }
   if (issue.depth >= 2) {
-    return 'Flatten into a single loop or limit the inner collection with limit:';
+    return `Nested loop${lineRef(lineDetails.nestedLoops)} — consider flattening or limiting the inner collection with limit:`;
   }
-  if (issue.message.includes('filter')) {
-    return 'Move filters to assign tags before the loop so they compute once';
+  if (lineDetails.hoistableFilters.length > 0) {
+    return `Move static filters${lineRef(lineDetails.hoistableFilters)} to assign tags above the loop — they don't depend on the loop variable`;
   }
   return 'Consider limiting the collection size or paginating';
 }
@@ -90,20 +98,21 @@ export function loopHint(issue: LoopIssue): string {
 export function sectionHint(issue: SectionIssue): string {
   const bigLines = issue.lines > 600;
   const bigBlocks = issue.blocks > 20;
+
   if (bigLines && bigBlocks) {
     return 'Split into focused sections and extract repeated markup into snippets';
-  }
-  if (bigLines) {
-    return 'Break into smaller sections — extract reusable markup into snippets';
   }
   if (bigBlocks) {
     return 'Reduce schema blocks — group related options or split into multiple sections';
   }
+  if (bigLines) {
+    return 'Long file with heavy markup — extract reusable markup into snippets';
+  }
   if (issue.lines > 400 && issue.blocks > 10) {
-    return 'Consider splitting — this section is growing complex';
+    return 'Many block types in a large file — consider splitting into multiple sections';
   }
   if (issue.lines > 400) {
-    return 'Section is getting large — consider extracting markup into snippets';
+    return 'Large file — extract repeated markup into snippets to reduce size';
   }
   return 'Schema is growing — consider grouping related block types';
 }
@@ -119,10 +128,15 @@ export function snippetHint(issue: SnippetGraphIssue): string {
 
 function loopTags(issue: LoopIssue): string {
   const tags: string[] = [];
-  if (issue.depth >= 2) tags.push('nested');
-  if (issue.message.includes('filter')) tags.push('filters');
-  if (issue.message.includes('all_products')) tags.push('all_products');
-  if (tags.length === 0) tags.push('simple loop');
+  if (issue.lineDetails.nestedLoops.length > 0) {
+    tags.push(`nested · L${issue.lineDetails.nestedLoops.join(',')}`);
+  }
+  if (issue.lineDetails.hoistableFilters.length > 0) {
+    tags.push(`hoistable · L${issue.lineDetails.hoistableFilters.join(',')}`);
+  }
+  if (issue.lineDetails.allProducts.length > 0) {
+    tags.push('all_products');
+  }
   return chalk.dim(tags.join(' · '));
 }
 
@@ -158,13 +172,6 @@ function printLoops(issues: LoopIssue[]): void {
     }
   }
 
-  // LOW — collapsed count
-  const low = groups.get('LOW')!;
-  if (low.length > 0) {
-    severityHeader('LOW', low.length);
-    nl();
-    console.log(`${I}${icon('LOW')}  ${chalk.dim(`${low.length} file${low.length === 1 ? '' : 's'} with simple loops`)}`);
-  }
 }
 
 // ── Snippet section ─────────────────────────────────────────────────
@@ -201,7 +208,10 @@ function printSnippets(issues: SnippetGraphIssue[]): void {
 // ── Section complexity ──────────────────────────────────────────────
 
 function sectionMetrics(issue: SectionIssue): string {
-  return chalk.dim(`${issue.lines} lines · ${issue.blocks} blocks`);
+  if (issue.blocks === 0) {
+    return chalk.dim(`${issue.lines} lines · no schema blocks`);
+  }
+  return chalk.dim(`${issue.lines} lines · ${plural(issue.blocks, 'block')}`);
 }
 
 function printSections(issues: SectionIssue[]): void {

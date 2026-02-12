@@ -12,32 +12,46 @@ describe('loopAnalyzer', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('detects a simple loop (score 1, LOW)', () => {
+  it('produces NO issue for simple loop with iterator-dependent filters', () => {
+    const content = `
+{% for item in collection.products %}
+  <p>{{ item.title | json }}</p>
+{% endfor %}
+`;
+    const result = analyzeLoops([file(content)]);
+    expect(result).toHaveLength(0);
+  });
+
+  it('produces NO issue for simple loop without filters', () => {
     const content = `
 {% for item in collection.products %}
   <p>{{ item.title }}</p>
 {% endfor %}
 `;
     const result = analyzeLoops([file(content)]);
-    expect(result).toHaveLength(1);
-    expect(result[0].score).toBe(1);
-    expect(result[0].severity).toBe('LOW');
-    expect(result[0].depth).toBe(1);
+    expect(result).toHaveLength(0);
   });
 
-  it('detects a loop with filter (score 3, MEDIUM)', () => {
+  it('detects hoistable filters (score 3, MEDIUM)', () => {
     const content = `
 {% for item in collection.products %}
-  <p>{{ item.title | upcase }}</p>
+  <h1>{{ section.settings.title | upcase }}</h1>
+  <p>{{ item.title }}</p>
 {% endfor %}
 `;
     const result = analyzeLoops([file(content)]);
     expect(result).toHaveLength(1);
-    expect(result[0].score).toBe(3); // loop +1, filter +2
+    expect(result[0].score).toBe(3);
     expect(result[0].severity).toBe('MEDIUM');
+    expect(result[0].lineDetails).toEqual({
+      forLoops: [2],
+      nestedLoops: [],
+      hoistableFilters: [3],
+      allProducts: [],
+    });
   });
 
-  it('detects nested loops (score 4, MEDIUM)', () => {
+  it('detects nested loops (score 5, HIGH)', () => {
     const content = `
 {% for collection in collections %}
   {% for product in collection.products %}
@@ -47,12 +61,33 @@ describe('loopAnalyzer', () => {
 `;
     const result = analyzeLoops([file(content)]);
     expect(result).toHaveLength(1);
-    expect(result[0].score).toBe(4); // loop +1, nested +3
-    expect(result[0].severity).toBe('MEDIUM');
+    expect(result[0].score).toBe(5);
+    expect(result[0].severity).toBe('HIGH');
     expect(result[0].depth).toBe(2);
+    expect(result[0].lineDetails).toEqual({
+      forLoops: [2, 3],
+      nestedLoops: [3],
+      hoistableFilters: [],
+      allProducts: [],
+    });
   });
 
-  it('detects nested loops with filter (score 6, HIGH)', () => {
+  it('detects nested loops with hoistable filters (score 8, HIGH)', () => {
+    const content = `
+{% for collection in collections %}
+  <h2>{{ section.settings.heading | upcase }}</h2>
+  {% for product in collection.products %}
+    <p>{{ product.title }}</p>
+  {% endfor %}
+{% endfor %}
+`;
+    const result = analyzeLoops([file(content)]);
+    expect(result).toHaveLength(1);
+    expect(result[0].score).toBe(8); // nested +5, hoistable +3
+    expect(result[0].severity).toBe('HIGH');
+  });
+
+  it('does not flag nested loops with only iterator-dependent filters', () => {
     const content = `
 {% for collection in collections %}
   {% for product in collection.products %}
@@ -62,30 +97,63 @@ describe('loopAnalyzer', () => {
 `;
     const result = analyzeLoops([file(content)]);
     expect(result).toHaveLength(1);
-    expect(result[0].score).toBe(6); // loop +1, nested +3, filter +2
-    expect(result[0].severity).toBe('HIGH');
+    expect(result[0].score).toBe(5); // nested +5 only, no hoistable
+    expect(result[0].lineDetails.hoistableFilters).toEqual([]);
   });
 
-  it('detects all_products usage (score 8, HIGH)', () => {
+  it('detects all_products usage (score 5, HIGH)', () => {
     const content = `
 {% for product in all_products %}
-  <p>{{ product.title | money }}</p>
+  <p>{{ product.title }}</p>
 {% endfor %}
 `;
     const result = analyzeLoops([file(content)]);
     expect(result).toHaveLength(1);
-    expect(result[0].score).toBe(8); // loop +1, filter +2, all_products +5
+    expect(result[0].score).toBe(5);
     expect(result[0].severity).toBe('HIGH');
     expect(result[0].message).toContain('all_products');
+    expect(result[0].lineDetails).toEqual({
+      forLoops: [2],
+      nestedLoops: [],
+      hoistableFilters: [],
+      allProducts: [2],
+    });
   });
 
   it('handles multiple files independently', () => {
     const files = [
       file('<div>No loops</div>', 'sections/clean.liquid'),
-      file('{% for i in (1..5) %}<p>{{ i }}</p>{% endfor %}', 'sections/loop.liquid'),
+      file(`{% for i in (1..5) %}<p>{{ i }}</p>{% endfor %}`, 'sections/loop.liquid'),
     ];
     const result = analyzeLoops(files);
-    expect(result).toHaveLength(1);
-    expect(result[0].file).toBe('sections/loop.liquid');
+    // Simple loop with no concerns → no issue
+    expect(result).toHaveLength(0);
+  });
+
+  it('includes nested loop lines in messages', () => {
+    const content = `
+{% for collection in collections %}
+  {% for product in collection.products %}
+    <p>{{ product.title }}</p>
+  {% endfor %}
+{% endfor %}
+`;
+    const result = analyzeLoops([file(content)]);
+    expect(result[0].message).toContain('Nested loop');
+    expect(result[0].message).toContain('line 3');
+  });
+
+  it('sequential loops are NOT flagged as nested', () => {
+    const content = `
+{% for block in section.blocks %}
+  <p>{{ block.settings.logo | image_url: 200 }}</p>
+{% endfor %}
+{% for link in section.settings.terms_menu.links %}
+  <a>{{ link.title | link_to: link.url }}</a>
+{% endfor %}
+`;
+    const result = analyzeLoops([file(content)]);
+    // Both filters depend on iterators → score 0 → no issue
+    expect(result).toHaveLength(0);
   });
 });

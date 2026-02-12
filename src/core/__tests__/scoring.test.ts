@@ -12,8 +12,8 @@ describe('buildReport', () => {
   it('computes summary from issue arrays', () => {
     const report = buildReport({
       loops: [
-        { file: 'a.liquid', depth: 2, score: 6, severity: 'HIGH', message: 'test' },
-        { file: 'b.liquid', depth: 1, score: 1, severity: 'LOW', message: 'test' },
+        { file: 'a.liquid', depth: 2, score: 6, severity: 'HIGH', message: 'test', lineDetails: { forLoops: [], nestedLoops: [], hoistableFilters: [], allProducts: [] } },
+        { file: 'b.liquid', depth: 1, score: 1, severity: 'LOW', message: 'test', lineDetails: { forLoops: [], nestedLoops: [], hoistableFilters: [], allProducts: [] } },
       ],
       snippets: [
         { type: 'CIRCULAR', chain: ['a', 'b', 'a'], severity: 'HIGH' },
@@ -50,7 +50,7 @@ describe('shouldFail', () => {
   it('returns true when issues at threshold severity exist', () => {
     const report = buildReport({
       loops: [
-        { file: 'a.liquid', depth: 2, score: 6, severity: 'HIGH', message: 'test' },
+        { file: 'a.liquid', depth: 2, score: 6, severity: 'HIGH', message: 'test', lineDetails: { forLoops: [], nestedLoops: [], hoistableFilters: [], allProducts: [] } },
       ],
       snippets: [],
       sections: [],
@@ -62,7 +62,7 @@ describe('shouldFail', () => {
   it('returns true when issues above threshold severity exist', () => {
     const report = buildReport({
       loops: [
-        { file: 'a.liquid', depth: 2, score: 6, severity: 'HIGH', message: 'test' },
+        { file: 'a.liquid', depth: 2, score: 6, severity: 'HIGH', message: 'test', lineDetails: { forLoops: [], nestedLoops: [], hoistableFilters: [], allProducts: [] } },
       ],
       snippets: [],
       sections: [],
@@ -74,7 +74,7 @@ describe('shouldFail', () => {
   it('returns false when no issues at or above threshold', () => {
     const report = buildReport({
       loops: [
-        { file: 'a.liquid', depth: 1, score: 1, severity: 'LOW', message: 'test' },
+        { file: 'a.liquid', depth: 1, score: 1, severity: 'LOW', message: 'test', lineDetails: { forLoops: [], nestedLoops: [], hoistableFilters: [], allProducts: [] } },
       ],
       snippets: [],
       sections: [],

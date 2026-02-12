@@ -1,11 +1,23 @@
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH';
 
+export interface LoopLineDetails {
+  /** 1-indexed line numbers where for-loops open */
+  forLoops: number[];
+  /** 1-indexed line numbers of for-loops at depth >= 2 */
+  nestedLoops: number[];
+  /** 1-indexed line numbers of filters that can be moved above the loop */
+  hoistableFilters: number[];
+  /** 1-indexed line numbers where all_products is referenced inside loops */
+  allProducts: number[];
+}
+
 export interface LoopIssue {
   file: string;
   depth: number;
   score: number;
   severity: Severity;
   message: string;
+  lineDetails: LoopLineDetails;
 }
 
 export interface SnippetGraphIssue {

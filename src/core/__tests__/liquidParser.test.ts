@@ -5,11 +5,13 @@ describe('detectForLoops', () => {
   it('returns depth 0 for content without loops', () => {
     const result = detectForLoops('<div>Hello</div>');
     expect(result.maxDepth).toBe(0);
-    expect(result.hasFilterInsideLoop).toBe(false);
+    expect(result.loops).toEqual([]);
+    expect(result.filters).toEqual([]);
     expect(result.hasAllProducts).toBe(false);
+    expect(result.allProductsLines).toEqual([]);
   });
 
-  it('detects single loop', () => {
+  it('detects single loop with iterator name', () => {
     const content = `
 {% for item in items %}
   <p>{{ item.name }}</p>
@@ -17,9 +19,16 @@ describe('detectForLoops', () => {
 `;
     const result = detectForLoops(content);
     expect(result.maxDepth).toBe(1);
+    expect(result.loops).toHaveLength(1);
+    expect(result.loops[0]).toMatchObject({
+      openLine: 2,
+      closeLine: 4,
+      depth: 1,
+      iterator: 'item',
+    });
   });
 
-  it('detects nested loops', () => {
+  it('detects nested loops with correct depths', () => {
     const content = `
 {% for outer in outers %}
   {% for inner in inners %}
@@ -29,19 +38,58 @@ describe('detectForLoops', () => {
 `;
     const result = detectForLoops(content);
     expect(result.maxDepth).toBe(2);
+    expect(result.loops).toHaveLength(2);
+    expect(result.loops[0]).toMatchObject({ openLine: 2, depth: 1, iterator: 'outer' });
+    expect(result.loops[1]).toMatchObject({ openLine: 3, depth: 2, iterator: 'inner' });
   });
 
-  it('detects filter inside loop', () => {
+  it('detects sequential loops as independent (not nested)', () => {
+    const content = `
+{% for block in section.blocks %}
+  <p>{{ block.title }}</p>
+{% endfor %}
+{% for link in section.settings.links %}
+  <a>{{ link.title }}</a>
+{% endfor %}
+`;
+    const result = detectForLoops(content);
+    expect(result.maxDepth).toBe(1);
+    expect(result.loops).toHaveLength(2);
+    expect(result.loops[0]).toMatchObject({ depth: 1, iterator: 'block' });
+    expect(result.loops[1]).toMatchObject({ depth: 1, iterator: 'link' });
+  });
+
+  it('marks iterator-dependent filters as dependsOnIterator: true', () => {
     const content = `
 {% for item in items %}
   <p>{{ item.name | upcase }}</p>
 {% endfor %}
 `;
     const result = detectForLoops(content);
-    expect(result.hasFilterInsideLoop).toBe(true);
+    expect(result.filters).toHaveLength(1);
+    expect(result.filters[0]).toMatchObject({
+      line: 3,
+      names: ['upcase'],
+      dependsOnIterator: true,
+    });
   });
 
-  it('does not flag filter outside loop', () => {
+  it('marks non-iterator filters as dependsOnIterator: false', () => {
+    const content = `
+{% for item in items %}
+  <p>{{ section.settings.title | upcase }}</p>
+{% endfor %}
+`;
+    const result = detectForLoops(content);
+    expect(result.filters).toHaveLength(1);
+    expect(result.filters[0]).toMatchObject({
+      line: 3,
+      names: ['upcase'],
+      dependsOnIterator: false,
+    });
+  });
+
+  it('does not collect filters outside loops', () => {
     const content = `
 <p>{{ title | upcase }}</p>
 {% for item in items %}
@@ -49,7 +97,7 @@ describe('detectForLoops', () => {
 {% endfor %}
 `;
     const result = detectForLoops(content);
-    expect(result.hasFilterInsideLoop).toBe(false);
+    expect(result.filters).toEqual([]);
   });
 
   it('detects all_products inside loop', () => {
@@ -60,6 +108,7 @@ describe('detectForLoops', () => {
 `;
     const result = detectForLoops(content);
     expect(result.hasAllProducts).toBe(true);
+    expect(result.allProductsLines).toEqual([2]);
   });
 
   it('handles whitespace-trimming tags', () => {
@@ -70,6 +119,51 @@ describe('detectForLoops', () => {
 `;
     const result = detectForLoops(content);
     expect(result.maxDepth).toBe(1);
+    expect(result.loops[0]).toMatchObject({ openLine: 2, iterator: 'item' });
+  });
+
+  it('extracts multiple filter names in a chain', () => {
+    const content = `
+{% for item in items %}
+  <img src="{{ item.image | image_url: 200 | image_tag }}">
+{% endfor %}
+`;
+    const result = detectForLoops(content);
+    expect(result.filters).toHaveLength(1);
+    expect(result.filters[0].names).toEqual(['image_url', 'image_tag']);
+    expect(result.filters[0].dependsOnIterator).toBe(true);
+  });
+
+  it('tracks multiple filter hits across lines', () => {
+    const content = `
+{% for item in items %}
+  <p>{{ item.name | upcase }}</p>
+  <p>{{ item.desc | truncate: 100 }}</p>
+{% endfor %}
+`;
+    const result = detectForLoops(content);
+    expect(result.filters).toHaveLength(2);
+    expect(result.filters[0].line).toBe(3);
+    expect(result.filters[1].line).toBe(4);
+  });
+
+  it('correctly handles nested iterators for dependency check', () => {
+    const content = `
+{% for collection in collections %}
+  <h2>{{ collection.title | upcase }}</h2>
+  {% for product in collection.products %}
+    <p>{{ product.title | truncate: 50 }}</p>
+    <span>{{ section.settings.label | upcase }}</span>
+  {% endfor %}
+{% endfor %}
+`;
+    const result = detectForLoops(content);
+    // collection.title | upcase → depends on "collection" iterator
+    expect(result.filters[0]).toMatchObject({ line: 3, dependsOnIterator: true });
+    // product.title | truncate → depends on "product" iterator
+    expect(result.filters[1]).toMatchObject({ line: 5, dependsOnIterator: true });
+    // section.settings.label | upcase → does NOT depend on any iterator
+    expect(result.filters[2]).toMatchObject({ line: 6, dependsOnIterator: false });
   });
 });
 

@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { scanThemeFiles } from '../../core/fileScanner.js';
 import { buildSnippetGraph } from '../../core/graphBuilder.js';
 import { buildReport, shouldFail } from '../../core/scoring.js';
-import { analyzeLoops } from '../../analyzers/loopAnalyzer.js';
+import { analyzeLoops, detectCommentBlocks } from '../../analyzers/loopAnalyzer.js';
 import { analyzeSnippets } from '../../analyzers/snippetAnalyzer.js';
 import { analyzeSections } from '../../analyzers/sectionAnalyzer.js';
 import { analyzeDuplicates } from '../../analyzers/duplicateAnalyzer.js';
@@ -15,10 +15,12 @@ function runAnalysis(themePath: string) {
   const config = resolveConfig(themePath);
   const themeFiles = scanThemeFiles(themePath);
 
-  const loopIssues = analyzeLoops([
+  const analysisFiles = [
     ...themeFiles.sections,
     ...themeFiles.templates,
-  ]);
+  ];
+  const loopIssues = analyzeLoops(analysisFiles);
+  const commentBlockIssues = detectCommentBlocks(analysisFiles);
   const graph = buildSnippetGraph(themeFiles.snippets);
   const snippetIssues = analyzeSnippets(graph, {
     maxSnippetDepth: config.maxSnippetDepth,
@@ -35,6 +37,7 @@ function runAnalysis(themePath: string) {
       snippets: snippetIssues,
       sections: sectionIssues,
       duplicates: duplicateIssues,
+      commentBlocks: commentBlockIssues,
     },
     {
       sections: themeFiles.sections.length,

@@ -6,6 +6,7 @@ import type {
   SnippetGraphIssue,
   SectionIssue,
   DuplicateSnippetIssue,
+  CommentBlockIssue,
 } from '../types/report.js';
 
 // ── Constants ───────────────────────────────────────────────────────
@@ -261,6 +262,26 @@ function printDuplicates(issues: DuplicateSnippetIssue[]): void {
   }
 }
 
+// ── Comment blocks ──────────────────────────────────────────────
+
+export function commentBlockHint(issue: CommentBlockIssue): string {
+  return `${issue.lineCount}-line comment block — audit and consider removing dead code`;
+}
+
+function printCommentBlocks(issues: CommentBlockIssue[]): void {
+  if (issues.length === 0) return;
+  sectionTitle('Large Comment Blocks', issues.length);
+
+  severityHeader('MEDIUM', issues.length);
+  const maxFile = Math.max(...issues.map((i) => i.file.length));
+  const colW = Math.min(maxFile + 2, 48);
+  nl();
+  for (const issue of issues) {
+    const meta = chalk.dim(`${issue.lineCount} lines at line ${issue.line}`);
+    console.log(`${I}${icon(issue.severity)}  ${padEnd(chalk.white(issue.file), colW)} ${meta}`);
+  }
+}
+
 // ── Summary ─────────────────────────────────────────────────────────
 
 function printSummary(report: ThemeGuardianReport): void {
@@ -327,5 +348,6 @@ export function printReport(report: ThemeGuardianReport): void {
   printSnippets(report.issues.snippets);
   printSections(report.issues.sections);
   printDuplicates(report.issues.duplicates);
+  printCommentBlocks(report.issues.commentBlocks);
   printSummary(report);
 }

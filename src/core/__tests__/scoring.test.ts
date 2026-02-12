@@ -24,6 +24,7 @@ describe('buildReport', () => {
       duplicates: [
         { hash: 'abc', snippets: ['x.liquid', 'y.liquid'], severity: 'LOW' },
       ],
+      commentBlocks: [],
     });
 
     expect(report.summary.totalIssues).toBe(5);
@@ -38,6 +39,7 @@ describe('buildReport', () => {
       snippets: [],
       sections: [],
       duplicates: [],
+      commentBlocks: [],
     });
     expect(report.summary.totalIssues).toBe(0);
     expect(report.summary.high).toBe(0);
@@ -55,6 +57,7 @@ describe('shouldFail', () => {
       snippets: [],
       sections: [],
       duplicates: [],
+      commentBlocks: [],
     });
     expect(shouldFail('HIGH', report)).toBe(true);
   });
@@ -67,6 +70,7 @@ describe('shouldFail', () => {
       snippets: [],
       sections: [],
       duplicates: [],
+      commentBlocks: [],
     });
     expect(shouldFail('MEDIUM', report)).toBe(true);
   });
@@ -79,6 +83,7 @@ describe('shouldFail', () => {
       snippets: [],
       sections: [],
       duplicates: [],
+      commentBlocks: [],
     });
     expect(shouldFail('HIGH', report)).toBe(false);
     expect(shouldFail('MEDIUM', report)).toBe(false);
@@ -92,6 +97,7 @@ describe('shouldFail', () => {
       duplicates: [
         { hash: 'abc', snippets: ['x.liquid', 'y.liquid'], severity: 'LOW' },
       ],
+      commentBlocks: [],
     });
     expect(shouldFail('LOW', report)).toBe(true);
   });
@@ -102,6 +108,7 @@ describe('shouldFail', () => {
       snippets: [],
       sections: [],
       duplicates: [],
+      commentBlocks: [],
     });
     expect(shouldFail('LOW', report)).toBe(false);
   });

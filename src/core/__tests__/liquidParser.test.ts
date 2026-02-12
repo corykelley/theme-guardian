@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectForLoops, detectRenderCalls } from '../liquidParser.js';
+import { detectForLoops, detectRenderCalls, stripCommentBlocks } from '../liquidParser.js';
 
 describe('detectForLoops', () => {
   it('returns depth 0 for content without loops', () => {
@@ -164,6 +164,111 @@ describe('detectForLoops', () => {
     expect(result.filters[1]).toMatchObject({ line: 5, dependsOnIterator: true });
     // section.settings.label | upcase → does NOT depend on any iterator
     expect(result.filters[2]).toMatchObject({ line: 6, dependsOnIterator: false });
+  });
+
+  it('marks assign-based indirect dependency as dependsOnIterator: true', () => {
+    const content = `
+{% for i in (1..5) %}
+  {% assign key = 'image_' | append: i %}
+  {{ section.settings[key] | img_url }}
+{% endfor %}
+`;
+    const result = detectForLoops(content);
+    expect(result.filters).toHaveLength(1);
+    expect(result.filters[0].dependsOnIterator).toBe(true);
+  });
+
+  it('marks forloop.index dependency as dependsOnIterator: true', () => {
+    const content = `
+{% for item in items %}
+  {{ forloop.index | minus: 1 }}
+{% endfor %}
+`;
+    const result = detectForLoops(content);
+    expect(result.filters).toHaveLength(1);
+    expect(result.filters[0].dependsOnIterator).toBe(true);
+  });
+
+  it('marks transitive assign dependency as dependsOnIterator: true', () => {
+    const content = `
+{% for block in section.blocks %}
+  {% assign a = block.settings.product %}
+  {% assign b = a.media %}
+  {{ b | img_url }}
+{% endfor %}
+`;
+    const result = detectForLoops(content);
+    expect(result.filters).toHaveLength(1);
+    expect(result.filters[0].dependsOnIterator).toBe(true);
+  });
+
+  it('strips commented-out code before analysis', () => {
+    const content = `
+{% comment %}
+{% for item in items %}
+  {{ section.settings.title | upcase }}
+{% endfor %}
+{% endcomment %}
+{% for real in things %}
+  {{ real.name | downcase }}
+{% endfor %}
+`;
+    const result = detectForLoops(content);
+    // Only the real loop should be detected, not the commented-out one
+    expect(result.loops).toHaveLength(1);
+    expect(result.loops[0].iterator).toBe('real');
+    // The only filter should be from the real loop
+    expect(result.filters).toHaveLength(1);
+    expect(result.filters[0].dependsOnIterator).toBe(true);
+  });
+
+  it('marks block-scoped lookup via assign as dependsOnIterator: true', () => {
+    const content = `
+{% for block in section.blocks %}
+  {% assign product = block.settings.product %}
+  {{ product.featured_media | image_url }}
+{% endfor %}
+`;
+    const result = detectForLoops(content);
+    expect(result.filters).toHaveLength(1);
+    expect(result.filters[0].dependsOnIterator).toBe(true);
+  });
+});
+
+describe('stripCommentBlocks', () => {
+  it('detects large comment blocks (>5 lines)', () => {
+    const content = `<div>
+{% comment %}
+line 1
+line 2
+line 3
+line 4
+line 5
+{% endcomment %}
+</div>`;
+    const result = stripCommentBlocks(content);
+    expect(result.largeComments).toHaveLength(1);
+    expect(result.largeComments[0]).toEqual({ line: 2, lineCount: 7 });
+  });
+
+  it('ignores small comment blocks (<=5 lines)', () => {
+    const content = `<div>
+{% comment %}
+Author: John
+{% endcomment %}
+</div>`;
+    const result = stripCommentBlocks(content);
+    expect(result.largeComments).toHaveLength(0);
+  });
+
+  it('preserves line numbering after stripping', () => {
+    const content = `line1
+{% comment %}
+removed
+{% endcomment %}
+line5`;
+    const result = stripCommentBlocks(content);
+    expect(result.cleaned.split('\n').length).toBe(content.split('\n').length);
   });
 });
 

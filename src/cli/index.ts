@@ -4,8 +4,8 @@ import { scanThemeFiles } from '../core/fileScanner.js';
 import { buildSnippetGraph } from '../core/graphBuilder.js';
 import { buildReport, shouldFail } from '../core/scoring.js';
 import { resolveConfig } from '../utils/config.js';
-import { printReport, loopHint, snippetHint, sectionHint } from '../utils/logger.js';
-import { analyzeLoops } from '../analyzers/loopAnalyzer.js';
+import { printReport, loopHint, snippetHint, sectionHint, commentBlockHint } from '../utils/logger.js';
+import { analyzeLoops, detectCommentBlocks } from '../analyzers/loopAnalyzer.js';
 import { analyzeSnippets } from '../analyzers/snippetAnalyzer.js';
 import { analyzeSections } from '../analyzers/sectionAnalyzer.js';
 import { analyzeDuplicates } from '../analyzers/duplicateAnalyzer.js';
@@ -45,10 +45,12 @@ export function createProgram(): Command {
       const themeFiles = scanThemeFiles(themePath);
 
       // Run analyzers
-      const loopIssues = analyzeLoops([
+      const analysisFiles = [
         ...themeFiles.sections,
         ...themeFiles.templates,
-      ]);
+      ];
+      const loopIssues = analyzeLoops(analysisFiles);
+      const commentBlockIssues = detectCommentBlocks(analysisFiles);
 
       const snippetGraph = buildSnippetGraph(themeFiles.snippets);
       const snippetIssues = analyzeSnippets(snippetGraph, {
@@ -69,6 +71,7 @@ export function createProgram(): Command {
           snippets: snippetIssues,
           sections: sectionIssues,
           duplicates: duplicateIssues,
+          commentBlocks: commentBlockIssues,
         },
         {
           sections: themeFiles.sections.length,
@@ -86,6 +89,7 @@ export function createProgram(): Command {
             snippets: report.issues.snippets.map((i) => ({ ...i, hint: snippetHint(i) })),
             sections: report.issues.sections.map((i) => ({ ...i, hint: sectionHint(i) })),
             duplicates: report.issues.duplicates.map((i) => ({ ...i, hint: 'Consolidate into a single snippet' })),
+            commentBlocks: report.issues.commentBlocks.map((i) => ({ ...i, hint: commentBlockHint(i) })),
           },
         };
         process.stdout.write(JSON.stringify(jsonReport, null, 2) + '\n');

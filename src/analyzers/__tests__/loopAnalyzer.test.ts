@@ -143,6 +143,18 @@ describe('loopAnalyzer', () => {
     expect(result[0].message).toContain('line 3');
   });
 
+  it('deduplicates hoistable filter line numbers when multiple filters on same line', () => {
+    const content = `
+{% for item in collection.products %}
+  <p>{{ section.settings.title | upcase }} {{ section.settings.subtitle | downcase }}</p>
+{% endfor %}
+`;
+    const result = analyzeLoops([file(content)]);
+    expect(result).toHaveLength(1);
+    // Line 3 has two hoistable filters, but should only appear once
+    expect(result[0].lineDetails.hoistableFilters).toEqual([3]);
+  });
+
   it('sequential loops are NOT flagged as nested', () => {
     const content = `
 {% for block in section.blocks %}

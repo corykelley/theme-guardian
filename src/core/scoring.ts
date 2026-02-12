@@ -5,6 +5,7 @@ import type {
   SnippetGraphIssue,
   SectionIssue,
   DuplicateSnippetIssue,
+  CommentBlockIssue,
   ThemeGuardianReport,
 } from '../types/report.js';
 
@@ -28,6 +29,7 @@ export function shouldFail(
     ...report.issues.snippets.map((i) => i.severity),
     ...report.issues.sections.map((i) => i.severity),
     ...report.issues.duplicates.map((i) => i.severity),
+    ...report.issues.commentBlocks.map((i) => i.severity),
   ];
   return allSeverities.some((s) => severityRank(s) >= threshold);
 }
@@ -38,6 +40,7 @@ export function buildReport(
     snippets: SnippetGraphIssue[];
     sections: SectionIssue[];
     duplicates: DuplicateSnippetIssue[];
+    commentBlocks: CommentBlockIssue[];
   },
   meta: ScanMeta = { sections: 0, snippets: 0, templates: 0 },
 ): ThemeGuardianReport {
@@ -63,6 +66,7 @@ export function buildReport(
   issues.snippets.forEach((i) => countSeverity(i.severity));
   issues.sections.forEach((i) => countSeverity(i.severity));
   issues.duplicates.forEach((i) => countSeverity(i.severity));
+  issues.commentBlocks.forEach((i) => countSeverity(i.severity));
 
   return {
     meta,

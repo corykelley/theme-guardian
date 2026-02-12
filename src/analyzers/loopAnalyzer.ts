@@ -1,5 +1,5 @@
-import type { FileMeta, LoopIssue, Severity } from '../types/report.js';
-import { detectForLoops } from '../core/liquidParser.js';
+import type { FileMeta, LoopIssue, CommentBlockIssue, Severity } from '../types/report.js';
+import { detectForLoops, stripCommentBlocks } from '../core/liquidParser.js';
 
 function computeSeverity(score: number): Severity {
   if (score >= 5) return 'HIGH';
@@ -78,7 +78,7 @@ export function analyzeLoops(files: FileMeta[]): LoopIssue[] {
       .filter((l) => l.depth >= 2)
       .map((l) => l.openLine);
 
-    const hoistableFilterLines = hoistableFilters.map((f) => f.line);
+    const hoistableFilterLines = [...new Set(hoistableFilters.map((f) => f.line))];
 
     const allForLoopLines = info.loops.map((l) => l.openLine);
 
@@ -104,6 +104,28 @@ export function analyzeLoops(files: FileMeta[]): LoopIssue[] {
         allProducts: info.allProductsLines,
       },
     });
+  }
+
+  return issues;
+}
+
+/**
+ * Detect large comment blocks (>5 lines) in sections and templates.
+ * These are likely dead code and should be audited for removal.
+ */
+export function detectCommentBlocks(files: FileMeta[]): CommentBlockIssue[] {
+  const issues: CommentBlockIssue[] = [];
+
+  for (const file of files) {
+    const { largeComments } = stripCommentBlocks(file.content);
+    for (const comment of largeComments) {
+      issues.push({
+        file: file.path,
+        line: comment.line,
+        lineCount: comment.lineCount,
+        severity: 'MEDIUM',
+      });
+    }
   }
 
   return issues;

@@ -40,6 +40,13 @@ export interface DuplicateSnippetIssue {
   severity: 'LOW';
 }
 
+export interface CommentBlockIssue {
+  file: string;
+  line: number;
+  lineCount: number;
+  severity: 'MEDIUM';
+}
+
 export interface ScanMeta {
   sections: number;
   snippets: number;
@@ -59,6 +66,7 @@ export interface ThemeGuardianReport {
     snippets: SnippetGraphIssue[];
     sections: SectionIssue[];
     duplicates: DuplicateSnippetIssue[];
+    commentBlocks: CommentBlockIssue[];
   };
 }
 

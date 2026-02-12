@@ -34,6 +34,8 @@ export function analyzeDuplicates(snippets: FileMeta[]): DuplicateSnippetIssue[]
 
   for (const snippet of snippets) {
     const normalized = normalizeContent(snippet.content);
+    // Skip empty files — they're just empty, not duplicates
+    if (normalized === '') continue;
     const hash = hashContent(normalized);
 
     if (!hashMap.has(hash)) {

@@ -6,7 +6,7 @@ import type {
   SectionIssue,
   DuplicateSnippetIssue,
   CommentBlockIssue,
-  ThemeGuardianReport,
+  ThemePulseReport,
 } from '../types/report.js';
 
 const SEVERITY_RANK: Record<Severity, number> = {
@@ -21,7 +21,7 @@ export function severityRank(severity: Severity): number {
 
 export function shouldFail(
   failOn: Severity,
-  report: ThemeGuardianReport,
+  report: ThemePulseReport,
 ): boolean {
   const threshold = severityRank(failOn);
   const allSeverities: Severity[] = [
@@ -43,7 +43,7 @@ export function buildReport(
     commentBlocks: CommentBlockIssue[];
   },
   meta: ScanMeta = { sections: 0, snippets: 0, templates: 0 },
-): ThemeGuardianReport {
+): ThemePulseReport {
   let high = 0;
   let medium = 0;
   let low = 0;

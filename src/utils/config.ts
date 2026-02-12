@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import type { Severity } from '../types/report.js';
 
-export interface ThemeGuardianConfig {
+export interface ThemePulseConfig {
   maxSnippetDepth: number;
   maxSectionLines: number;
   maxSectionBlocks: number;
@@ -10,7 +10,7 @@ export interface ThemeGuardianConfig {
   failOn?: Severity;
 }
 
-const DEFAULTS: ThemeGuardianConfig = {
+const DEFAULTS: ThemePulseConfig = {
   maxSnippetDepth: 3,
   maxSectionLines: 400,
   maxSectionBlocks: 10,
@@ -23,8 +23,8 @@ function isValidSeverity(value: unknown): value is Severity {
   return typeof value === 'string' && VALID_SEVERITIES.includes(value as Severity);
 }
 
-function loadConfigFile(themePath: string): Partial<ThemeGuardianConfig> {
-  const configPath = join(resolve(themePath), 'theme-guardian.config.json');
+function loadConfigFile(themePath: string): Partial<ThemePulseConfig> {
+  const configPath = join(resolve(themePath), 'theme-pulse.config.json');
   if (!existsSync(configPath)) {
     return {};
   }
@@ -32,7 +32,7 @@ function loadConfigFile(themePath: string): Partial<ThemeGuardianConfig> {
   try {
     const raw = readFileSync(configPath, 'utf-8');
     const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const result: Partial<ThemeGuardianConfig> = {};
+    const result: Partial<ThemePulseConfig> = {};
 
     if (typeof parsed.maxSnippetDepth === 'number' && parsed.maxSnippetDepth >= 0) {
       result.maxSnippetDepth = parsed.maxSnippetDepth;
@@ -60,7 +60,7 @@ export interface CLIOverrides {
 export function resolveConfig(
   themePath: string,
   cliOverrides: CLIOverrides = {},
-): ThemeGuardianConfig {
+): ThemePulseConfig {
   const fileConfig = loadConfigFile(themePath);
 
   return {

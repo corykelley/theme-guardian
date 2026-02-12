@@ -1,41 +1,40 @@
-# theme-guardian
+# theme-pulse
 
 Architecture and performance analysis for Shopify themes. Catches the Liquid patterns that silently degrade storefront speed and make themes harder to maintain.
 
 ```bash
-theme-guardian analyze ./your-theme
+tpulse analyze ./your-theme
 ```
 
 ## Why
 
-Liquid runs server-side on every storefront request. There's no build step, no tree-shaking, no compile-time optimization. Bad patterns ship directly to production and affect every customer on every page load. theme-guardian catches these patterns locally before they get that far.
+Liquid runs server-side on every storefront request. There's no build step, no tree-shaking, no compile-time optimization. Bad patterns ship directly to production and affect every customer on every page load. theme-pulse catches these patterns locally before they get that far.
 
 ## Install
 
-Requires Node.js 20+ and pnpm.
-
 ```bash
-pnpm install
-pnpm build
+npm install -g theme-pulse
 ```
+
+Requires Node.js 20+.
 
 ## Usage
 
 ```bash
 # Pretty console output
-theme-guardian analyze ./path/to/theme
+tpulse analyze ./path/to/theme
 
 # JSON for CI pipelines
-theme-guardian analyze ./path/to/theme --json
+tpulse analyze ./path/to/theme --json
 
 # Exit code 1 when HIGH issues exist (opt-in CI gate)
-theme-guardian analyze ./path/to/theme --fail-on=HIGH
+tpulse analyze ./path/to/theme --fail-on=HIGH
 
 # Development — run without building
 pnpm dev -- analyze ./path/to/theme
 ```
 
-By default, theme-guardian always exits 0. Pass `--fail-on` to opt in to CI gate behavior.
+By default, tpulse always exits 0. Pass `--fail-on` to opt in to CI gate behavior.
 
 ## What it checks
 
@@ -94,7 +93,7 @@ Consolidate into a single snippet and update all `{% render %}` calls. Duplicate
 
 ## Configuration
 
-Optional `theme-guardian.config.json` in your theme's root:
+Optional `theme-pulse.config.json` in your theme's root:
 
 ```json
 {

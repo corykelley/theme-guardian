@@ -24,7 +24,7 @@ export function createProgram(): Command {
   const program = new Command();
 
   program
-    .name('theme-guardian')
+    .name('tpulse')
     .description('Opinionated architecture and performance analysis for Shopify themes')
     .version('0.1.0');
 

@@ -114,7 +114,7 @@ describe('Integration: large-section-theme', () => {
 });
 
 describe('JSON output conformance', () => {
-  it('produces a valid ThemeGuardianReport shape', () => {
+  it('produces a valid ThemePulseReport shape', () => {
     const report = runAnalysis(resolve(FIXTURES, 'nested-loop-theme'));
 
     // Verify shape

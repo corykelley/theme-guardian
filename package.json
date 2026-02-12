@@ -1,10 +1,10 @@
 {
-  "name": "theme-guardian",
+  "name": "theme-pulse",
   "version": "0.1.0",
   "description": "Opinionated architecture and performance analysis for Shopify themes",
   "type": "module",
   "bin": {
-    "theme-guardian": "./dist/index.js"
+    "tpulse": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

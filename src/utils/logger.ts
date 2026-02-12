@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import type {
   Severity,
-  ThemeGuardianReport,
+  ThemePulseReport,
   LoopIssue,
   SnippetGraphIssue,
   SectionIssue,
@@ -284,7 +284,7 @@ function printCommentBlocks(issues: CommentBlockIssue[]): void {
 
 // ── Summary ─────────────────────────────────────────────────────────
 
-function printSummary(report: ThemeGuardianReport): void {
+function printSummary(report: ThemePulseReport): void {
   const { summary } = report;
 
   nl();
@@ -316,7 +316,7 @@ function printSummary(report: ThemeGuardianReport): void {
 
 // ── Header ──────────────────────────────────────────────────────────
 
-function printHeader(report: ThemeGuardianReport): void {
+function printHeader(report: ThemePulseReport): void {
   const { meta } = report;
   const parts: string[] = [];
   if (meta.sections > 0) parts.push(plural(meta.sections, 'section'));
@@ -334,7 +334,7 @@ function printHeader(report: ThemeGuardianReport): void {
   console.log(`${P}          ${s('▀██')}${f('░░░░')}${s('██▀')}`);
   console.log(`${P}            ${s('▀████▀')}`);
   nl();
-  console.log(`${P}${chalk.bold('theme-guardian')} ${f('v0.1.0')}`);
+  console.log(`${P}${chalk.bold('theme-pulse')} ${f('v0.1.0')}`);
   if (parts.length > 0) {
     console.log(`${P}${f(parts.join(' · ') + ' scanned')}`);
   }
@@ -342,7 +342,7 @@ function printHeader(report: ThemeGuardianReport): void {
 
 // ── Main ────────────────────────────────────────────────────────────
 
-export function printReport(report: ThemeGuardianReport): void {
+export function printReport(report: ThemePulseReport): void {
   printHeader(report);
   printLoops(report.issues.loops);
   printSnippets(report.issues.snippets);

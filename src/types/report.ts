@@ -53,7 +53,7 @@ export interface ScanMeta {
   templates: number;
 }
 
-export interface ThemeGuardianReport {
+export interface ThemePulseReport {
   meta: ScanMeta;
   summary: {
     totalIssues: number;

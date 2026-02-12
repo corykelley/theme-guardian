@@ -2,6 +2,11 @@
   "name": "theme-pulse",
   "version": "0.1.0",
   "description": "Opinionated architecture and performance analysis for Shopify themes",
+  "author": "Cory Kelley",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/corykelley/theme-pulse"
+  },
   "type": "module",
   "bin": {
     "tpulse": "./dist/index.js"
@@ -22,6 +27,10 @@
     "performance",
     "architecture",
     "lint"
+  ],
+  "files": [
+    "dist",
+    "README.md"
   ],
   "license": "MIT",
   "dependencies": {

@@ -15,6 +15,10 @@ export interface LoopScope {
   depth: number;
   /** Iterator variable name, e.g. "block", "link", "product" */
   iterator: string;
+  /** Collection expression being looped over, e.g. "collection.products", "section.blocks" */
+  collection: string;
+  /** Classification of loop type: safe (navigation), risky (collections), or critical (all_products) */
+  loopType?: 'safe' | 'risky' | 'critical';
 }
 
 export interface FilterHit {
@@ -166,7 +170,7 @@ export function detectForLoops(content: string): ForLoopInfo {
   const allProductsLines: number[] = [];
   let maxDepth = 0;
 
-  const forOpenRe = /\{%-?\s*for\s+(\w+)\s+in\s+/g;
+  const forOpenRe = /\{%-?\s*for\s+(\w+)\s+in\s+([\w.\[\]'":()\s-]+?)(?:\s+-?%\}|\s+limit:|\s+offset:)/g;
   const forCloseRe = /\{%-?\s*endfor\s*-?%\}/g;
   const outputRe = /\{\{(.*?)\}\}/g;
   const assignRe = /\{%-?\s*assign\s+(\w+)\s*=(.*?)(?:-?%\})/g;
@@ -193,11 +197,14 @@ export function detectForLoops(content: string): ForLoopInfo {
     forOpenRe.lastIndex = 0;
     while ((forMatch = forOpenRe.exec(line)) !== null) {
       const depth = loopStack.length + 1;
+      const iterator = forMatch[1];
+      const collection = forMatch[2].trim();
       const scope: LoopScope = {
         openLine: lineNum,
         closeLine: 0,
         depth,
-        iterator: forMatch[1],
+        iterator,
+        collection,
       };
       loopStack.push(scope);
       taintedVarsStack.push(new Set<string>());
@@ -270,6 +277,11 @@ export function detectForLoops(content: string): ForLoopInfo {
   // Sort by openLine for consistent ordering
   completedLoops.sort((a, b) => a.openLine - b.openLine);
 
+  // Classify each loop
+  for (const loop of completedLoops) {
+    loop.loopType = classifyLoop(loop.collection);
+  }
+
   return {
     loops: completedLoops,
     filters,
@@ -277,6 +289,60 @@ export function detectForLoops(content: string): ForLoopInfo {
     hasAllProducts,
     allProductsLines,
   };
+}
+
+export type LoopType = 'safe' | 'risky' | 'critical';
+
+/**
+ * Classify loop based on collection expression.
+ * Safe: Navigation, blocks, ranges (5-20 items)
+ * Risky: Products, collections, search (100+ items)
+ * Critical: all_products (deprecated, uncached)
+ */
+export function classifyLoop(collection: string): LoopType {
+  const normalized = collection.toLowerCase().trim();
+
+  // Critical: all_products
+  if (normalized.includes('all_products')) {
+    return 'critical';
+  }
+
+  // Safe patterns: small, bounded collections
+  const safePatterns = [
+    /\.links$/,                    // menu.links
+    /^linklists?\./,               // linklists.main-menu
+    /\.blocks$/,                   // section.blocks
+    /\.settings\./,                // section.settings.*
+    /^\(\d+\.\.\d+\)$/,           // (1..5)
+    /^\(0\.\.[\w.]+\.size\)$/,    // (0..array.size)
+    /\.blocks\.settings\./,        // block.settings.*
+    /^(menus|navigation|header|footer)\./,
+  ];
+
+  for (const pattern of safePatterns) {
+    if (pattern.test(normalized)) {
+      return 'safe';
+    }
+  }
+
+  // Risky patterns: large collections
+  const riskyPatterns = [
+    /\.products$/,                 // collection.products
+    /^collections$/,               // collections
+    /\.results$/,                  // search.results
+    /\.items$/,                    // cart.items
+    /\.articles$/,                 // blog.articles
+    /\.variants$/,                 // product.variants
+  ];
+
+  for (const pattern of riskyPatterns) {
+    if (pattern.test(normalized)) {
+      return 'risky';
+    }
+  }
+
+  // Default: treat unknown as risky (conservative)
+  return 'risky';
 }
 
 /**

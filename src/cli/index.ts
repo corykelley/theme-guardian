@@ -26,7 +26,7 @@ export function createProgram(): Command {
   program
     .name('tpulse')
     .description('Opinionated architecture and performance analysis for Shopify themes')
-    .version('0.1.0');
+    .version('0.1.1');
 
   program
     .command('analyze')

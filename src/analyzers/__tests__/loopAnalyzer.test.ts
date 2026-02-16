@@ -32,6 +32,17 @@ describe('loopAnalyzer', () => {
     expect(result).toHaveLength(0);
   });
 
+  it('does NOT flag translation filters as hoistable', () => {
+    const content = `
+{% for item in collection.products %}
+  <h1>{{ 'products.title' | t }}</h1>
+  <p>{{ item.title }}</p>
+{% endfor %}
+`;
+    const result = analyzeLoops([file(content)]);
+    expect(result).toHaveLength(0); // No issues - translation filters are excluded
+  });
+
   it('detects hoistable filters (score 3, MEDIUM)', () => {
     const content = `
 {% for item in collection.products %}
@@ -167,5 +178,58 @@ describe('loopAnalyzer', () => {
     const result = analyzeLoops([file(content)]);
     // Both filters depend on iterators → score 0 → no issue
     expect(result).toHaveLength(0);
+  });
+
+  it('produces NO issue for safe nested loops (navigation)', () => {
+    const content = `
+{% for block in section.blocks %}
+  {% for link in block.settings.menu.links %}
+    <a>{{ link.title }}</a>
+  {% endfor %}
+{% endfor %}
+`;
+    const result = analyzeLoops([file(content)]);
+    expect(result).toHaveLength(0); // Score 0, no issue
+  });
+
+  it('detects risky nested loops with proper severity (score 5)', () => {
+    const content = `
+{% for collection in collections %}
+  {% for product in collection.products %}
+    <p>{{ product.title }}</p>
+  {% endfor %}
+{% endfor %}
+`;
+    const result = analyzeLoops([file(content)]);
+    expect(result[0].score).toBe(5);
+    expect(result[0].severity).toBe('HIGH');
+    expect(result[0].message).toContain('collection.products');
+    expect(result[0].message).toContain('large collection');
+  });
+
+  it('detects critical nested loops with all_products (score 10)', () => {
+    const content = `
+{% for collection in collections %}
+  {% for product in all_products %}
+    <p>{{ product.title }}</p>
+  {% endfor %}
+{% endfor %}
+`;
+    const result = analyzeLoops([file(content)]);
+    expect(result[0].score).toBe(15); // nested critical +10, all_products +5
+    expect(result[0].severity).toBe('HIGH');
+  });
+
+  it('detects mixed safe+risky nested loops (score 3)', () => {
+    const content = `
+{% for block in section.blocks %}
+  {% for product in collection.products %}
+    <p>{{ product.title }}</p>
+  {% endfor %}
+{% endfor %}
+`;
+    const result = analyzeLoops([file(content)]);
+    expect(result[0].score).toBe(3); // Mixed: medium concern
+    expect(result[0].severity).toBe('MEDIUM');
   });
 });

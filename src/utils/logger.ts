@@ -321,18 +321,17 @@ function printHeader(report: ThemePulseReport): void {
   const parts: string[] = [];
   if (meta.sections > 0) parts.push(plural(meta.sections, 'section'));
   if (meta.snippets > 0) parts.push(plural(meta.snippets, 'snippet'));
-  if (meta.templates > 0) parts.push(plural(meta.templates, 'template'));
+  if (meta.templates > 0) parts.push(plural(meta.templates, 'liquid template'));
 
   nl();
   const s = chalk.cyan;
   const f = chalk.dim;
-  console.log(`${P}       ${s('▄██████████████▄')}`);
-  console.log(`${P}      ${s('██')}${f('░░░░░░░░░░░░░░')}${s('██')}`);
-  console.log(`${P}      ${s('██')}${f('░░░░░░░░░░░░░░')}${s('██')}`);
-  console.log(`${P}       ${s('██')}${f('░░░░░░░░░░░░')}${s('██')}`);
-  console.log(`${P}        ${s('▀██')}${f('░░░░░░░░')}${s('██▀')}`);
-  console.log(`${P}          ${s('▀██')}${f('░░░░')}${s('██▀')}`);
-  console.log(`${P}            ${s('▀████▀')}`);
+  console.log(`${P}${s('██████╗ ██╗   ██╗██╗     ███████╗███████╗')}`);
+  console.log(`${P}${s('██╔══██╗██║   ██║██║     ██╔════╝██╔════╝')}`);
+  console.log(`${P}${s('██████╔╝██║   ██║██║     ███████╗█████╗  ')}`);
+  console.log(`${P}${s('██╔═══╝ ██║   ██║██║     ╚════██║██╔══╝  ')}`);
+  console.log(`${P}${s('██║     ╚██████╔╝███████╗███████║███████╗')}`);
+  console.log(`${P}${s('╚═╝      ╚═════╝ ╚══════╝╚══════╝╚══════╝')}`);
   nl();
   console.log(`${P}${chalk.bold('theme-pulse')} ${f('v0.1.0')}`);
   if (parts.length > 0) {

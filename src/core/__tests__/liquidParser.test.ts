@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectForLoops, detectRenderCalls, stripCommentBlocks } from '../liquidParser.js';
+import { detectForLoops, detectRenderCalls, stripCommentBlocks, classifyLoop } from '../liquidParser.js';
 
 describe('detectForLoops', () => {
   it('returns depth 0 for content without loops', () => {
@@ -232,6 +232,59 @@ describe('detectForLoops', () => {
     const result = detectForLoops(content);
     expect(result.filters).toHaveLength(1);
     expect(result.filters[0].dependsOnIterator).toBe(true);
+  });
+
+  it('captures collection expressions', () => {
+    const content = `{% for product in collection.products %}{% endfor %}`;
+    const result = detectForLoops(content);
+    expect(result.loops[0].collection).toBe('collection.products');
+  });
+
+  it('captures navigation expressions', () => {
+    const content = `{% for link in section.settings.menu.links %}{% endfor %}`;
+    const result = detectForLoops(content);
+    expect(result.loops[0].collection).toBe('section.settings.menu.links');
+  });
+
+  it('captures expressions with limit', () => {
+    const content = `{% for item in items limit: 10 %}{% endfor %}`;
+    const result = detectForLoops(content);
+    expect(result.loops[0].collection).toBe('items');
+  });
+
+  it('captures expressions with offset', () => {
+    const content = `{% for item in items offset: 5 %}{% endfor %}`;
+    const result = detectForLoops(content);
+    expect(result.loops[0].collection).toBe('items');
+  });
+});
+
+describe('classifyLoop', () => {
+  it('classifies navigation as safe', () => {
+    expect(classifyLoop('section.settings.menu.links')).toBe('safe');
+    expect(classifyLoop('section.blocks')).toBe('safe');
+    expect(classifyLoop('linklists.main-menu.links')).toBe('safe');
+  });
+
+  it('classifies collections as risky', () => {
+    expect(classifyLoop('collection.products')).toBe('risky');
+    expect(classifyLoop('search.results')).toBe('risky');
+    expect(classifyLoop('collections')).toBe('risky');
+  });
+
+  it('classifies all_products as critical', () => {
+    expect(classifyLoop('all_products')).toBe('critical');
+    expect(classifyLoop('collections.all_products')).toBe('critical');
+  });
+
+  it('classifies ranges as safe', () => {
+    expect(classifyLoop('(1..5)')).toBe('safe');
+    expect(classifyLoop('(0..array.size)')).toBe('safe');
+  });
+
+  it('defaults unknown patterns to risky', () => {
+    expect(classifyLoop('unknown_collection')).toBe('risky');
+    expect(classifyLoop('custom.items')).toBe('risky');
   });
 });
 
